@@ -227,6 +227,11 @@ core-util-is@~1.0.0:
   resolved "https://registry.yarnpkg.com/core-util-is/-/core-util-is-1.0.3.tgz#a6042d3634c2b27e9328f837b965fac83808db85"
   integrity sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==
 
+crc-32@^1.2.2:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/crc-32/-/crc-32-1.2.2.tgz#3cad35a934b8bf71f25ca524b6da51fb7eace2ff"
+  integrity sha512-ROmzCKrTnOwybPcJApAA6WBWij23HVfGVNKqqrZpuyZOHqK2CwHSvpGuyt/UNNvaIjEd8X5IFGp4Mh+Ie1IHJQ==
+
 debug@4:
   version "4.3.4"
   resolved "https://registry.yarnpkg.com/debug/-/debug-4.3.4.tgz#1319f6579357f2338d3337d2cdd4914bb5dcc865"
@@ -565,6 +570,13 @@ node-abi@^3.3.0:
   integrity sha512-p7eGEiQil0YUV3ItH4/tBb781L5impVmmx2E9FRKF7d18XXzp4PGT2tdYMFY6wQqgxD0IwNZOiSJ0/K0fSi/OA==
   dependencies:
     semver "^7.3.5"
+
+node-dsu@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/node-dsu/-/node-dsu-1.0.1.tgz#d15133c49236aafb100e2997341e9df29e682243"
+  integrity sha512-FWsPCsyK4gYnB60dY7qonQCPoO0ZpW2YaBruv1LZAy7DY2bVHZu5UKHzcgOxSmAKoVXKPTHR93ZFnrKkqNQ6xg==
+  dependencies:
+    crc-32 "^1.2.2"
 
 node-fetch@^2.6.6:
   version "2.7.0"
