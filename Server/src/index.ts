@@ -2,7 +2,7 @@
 
 import net from "net";
 import path from "path";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import { ChildProcess, execFile } from "child_process";
 
 const pkg = (process as any).pkg;
@@ -26,21 +26,19 @@ const anyKey2Exit = () => {
 
 const main = () => {
   client = new net.Socket();
-  child = execFile(vigemPath);
-  child.on("exit", (code, signal) => {
-    console.log("Vigem exited with code", code, signal);
-    anyKey2Exit();
-  });
 
   const config = JSON.parse(readFileSync(configPath).toString());
 
-  let STICK_THRESHOLD = config.STICK_THRESHOLD;
-
   const parseData = (data: Buffer) => {
-    if (data.length != 7) return;
+    // console.log(data);
+    if (data.length != 3) return;
 
     const b = (index: number, bitIndex: number) => {
       return (data[index] & (1 << bitIndex)) != 0;
+    };
+
+    const bx = (index: number, bitIndex: number) => {
+      return b(index, bitIndex) ? 1 : 0;
     };
 
     const Parsed = {
@@ -62,11 +60,10 @@ const main = () => {
       CDOWN: b(1, 7),
       CLEFT: b(2, 0),
       CRIGHT: b(2, 1),
-
-      ANALOG: {
-        X: Math.min(Math.max(data.readInt16LE(3), -150), 150),
-        Y: Math.min(Math.max(data.readInt16LE(5), -150), 150),
-      },
+      LRIGHT: b(2, 2),
+      LLEFT: b(2, 3),
+      LUP: b(2, 4),
+      LDOWN: b(2, 5),
     };
 
     const maxv = 1;
@@ -99,14 +96,10 @@ const main = () => {
         "D"
       );
 
+    // console.log("AN", Parsed.ANALOGLSTICK);
     const getLStick = () =>
       mf(
-        getNotiation(
-          Parsed.ANALOG.Y > STICK_THRESHOLD,
-          Parsed.ANALOG.Y < -STICK_THRESHOLD,
-          Parsed.ANALOG.X < -STICK_THRESHOLD,
-          Parsed.ANALOG.X > STICK_THRESHOLD
-        ),
+        getNotiation(Parsed.LUP, Parsed.LDOWN, Parsed.LLEFT, Parsed.LRIGHT),
         "L"
       );
 
@@ -123,8 +116,8 @@ const main = () => {
       dt(Parsed.Y, "Y"),
       dt(Parsed.L, "LB"),
       dt(Parsed.R, "RB"),
-      dt(Parsed.ZL, "LT"),
-      dt(Parsed.ZR, "RT"),
+      dt(Parsed.ZL, "L"),
+      dt(Parsed.ZR, "R"),
       dt(Parsed.SELECT, "BACK"),
       dt(Parsed.START, "START"),
       getDPad(),
@@ -139,6 +132,7 @@ const main = () => {
   };
 
   client.on("data", (data) => {
+    // console.log("DATA", data);
     parseData(data);
   });
 
@@ -158,6 +152,12 @@ const main = () => {
   console.log("CONNECTING TO 3DS");
   client.connect(config["3DS_PORT"], config["3DS_IP"], () => {
     console.log("CONNECTED TO 3DS");
+    child = execFile(vigemPath);
+    child.on("exit", (code, signal) => {
+      console.log("Vigem exited with code", code, signal);
+      anyKey2Exit();
+    });
+
     // anyKey2Exit();
   });
 };
@@ -217,7 +217,6 @@ if (!existsSync(configPath)) {
     configPath,
     JSON.stringify(
       {
-        STICK_THRESHOLD: 60,
         "3DS_IP": "127.0.0.1",
         "3DS_PORT": 80,
       },

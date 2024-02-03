@@ -28,7 +28,6 @@ u32	clientlen;
 struct sockaddr_in client;
 struct sockaddr_in server;
 char temp[1026];
-static int hits=0;
 
 __attribute__((format(printf,1,2)))
 void failExit(const char *fmt, ...);
@@ -48,11 +47,17 @@ char boolByteArrayToCharByte(bool *arr) {
     return ret;
 }
 
-void runRealMain() {
-    u32 kHeldOld = 0;
-    circlePosition posOld;
+int max(int a, int b) {
+	return a > b ? a : b;
+}
+int min(int a, int b) {
+	return a < b ? a : b;
+}
 
+void runRealMain() {
 	int frm = 0;
+
+	char lastBuf[3] = {0,0,0};
 
     while (aptMainLoop())
     {
@@ -62,13 +67,18 @@ void runRealMain() {
         // u32 kDown = hidKeysDown();
         u32 kHeld = hidKeysHeld();
         circlePosition pos;
-        
+
+		touchPosition touch;
+
+		//Read the touch screen coordinates
+		hidTouchRead(&touch);
         hidCircleRead(&pos);
         // u32 kUp = hidKeysUp();
 		if (kHeld & KEY_TOUCH) break;
-
+		// printf("Touch: %03d; %03d\n", touch.px, touch.py);
+		
 		frm++;
-        if(frm == 2) {
+        if(frm >= 3) {
 			frm = 0;
             bool buf1[8] = {
                 kHeld & KEY_A,
@@ -90,51 +100,39 @@ void runRealMain() {
                 kHeld & KEY_CSTICK_UP,
                 kHeld & KEY_CSTICK_DOWN,
             };
+
+			// bool x[4] = {0,0,0,0};
+
             bool buf3[8] = {
                 kHeld & KEY_CSTICK_LEFT,
                 kHeld & KEY_CSTICK_RIGHT,
-                0,
-                0,
-                0,
-                0,
+				pos.dx > 60,
+				pos.dx < -60,
+				pos.dy > 60,
+				pos.dy < -60,
                 0,
                 0
             };
 
-            char buf[7] = {
+            char buf[] = {
                 boolByteArrayToCharByte(buf1),
                 boolByteArrayToCharByte(buf2),
-                boolByteArrayToCharByte(buf3),
-                0,
-                0,
-                0,
-                0
+                boolByteArrayToCharByte(buf3)
             };
 
-            buf[3] = pos.dx & 0xFF;
-            buf[4] = (pos.dx >> 8) & 0xFF;
-            buf[5] = pos.dy & 0xFF;
-            buf[6] = (pos.dy >> 8) & 0xFF;
-
-            // printf("STICK : %04d; %04d\n", pos.dx, pos.dy);
-
-            // print buf as binary
-            // for(int i = 0; i < 8; i++) {
-            //     printf("%d", buf1[i]);
+            // for(int i = 0; i < 3; i++) {
+			// 	printf("%02X ", buf[i]);
             // }
-            // for(int i = 0; i < 8; i++) {
-            //     printf("%d", buf2[i]);
-            // }
-            // for(int i = 0; i < 8; i++) {
-            //     printf("%d", buf3[i]);
-            // }
-            // printf("\n");
-            send(csock, buf, sizeof(buf), 0);
-
-            kHeldOld = kHeld;
-            posOld = pos;
+			// printf("\n");
+			if(lastBuf[0] != buf[0] || lastBuf[1] != buf[1] || lastBuf[2] != buf[2]) {
+				send(csock, buf, sizeof(buf), 0);
+				lastBuf[0] = buf[0];
+				lastBuf[1] = buf[1];
+				lastBuf[2] = buf[2];
+			}
+			// printf("Sent\n");
         }
-    }
+	}
 
     close (csock);
     csock = -1;
