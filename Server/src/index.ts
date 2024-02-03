@@ -2,19 +2,35 @@
 
 import net from "net";
 import path from "path";
-import { existsSync, readFileSync, writeFileSync } from "fs";
-import { execFile } from "child_process";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
+import { ChildProcess, execFile } from "child_process";
 
 const pkg = (process as any).pkg;
-const configPath = pkg
-  ? path.join(path.dirname(process.execPath), "config.json")
-  : path.join(__dirname, "config.json");
+const basePath = pkg ? path.dirname(process.execPath) : __dirname;
+const configPath = path.join(basePath, "config.json");
+const vigemPath = path.join(basePath, "vigem.exe");
+
+let client: net.Socket;
+let child: ChildProcess;
+
+const anyKey2Exit = () => {
+  console.log("Press any key to exit");
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.on("data", () => {
+    if (client && !client.destroyed) client.destroy();
+    if (child && !child.killed) child.kill();
+    process.exit();
+  });
+};
 
 const main = () => {
-  const client = new net.Socket();
-  var child = execFile(
-    path.join(__dirname, "..", "assets", "vigem-interface.exe")
-  );
+  client = new net.Socket();
+  child = execFile(vigemPath);
+  child.on("exit", (code, signal) => {
+    console.log("Vigem exited with code", code, signal);
+    anyKey2Exit();
+  });
 
   const config = JSON.parse(readFileSync(configPath).toString());
 
@@ -132,18 +148,67 @@ const main = () => {
     child.stdin?.write("!\n");
 
     // wait key press to exit
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.on("data", process.exit.bind(process, 0));
-    console.log("Press any key to exit");
+    anyKey2Exit();
   });
 
   client.on("error", (err) => {
     console.log("ERROR", err);
   });
 
+  console.log("CONNECTING TO 3DS");
   client.connect(config["3DS_PORT"], config["3DS_IP"], () => {
     console.log("CONNECTED TO 3DS");
+    anyKey2Exit();
+  });
+};
+
+import { createWriteStream } from "fs";
+import axios from "axios";
+
+async function downloadFile(fileUrl: string, outputLocationPath: string) {
+  const writer = createWriteStream(outputLocationPath);
+
+  return axios({
+    method: "get",
+    url: fileUrl,
+    responseType: "stream",
+  }).then((response) => {
+    //ensure that the user can call `then()` only when the file has
+    //been downloaded entirely.
+
+    return new Promise((resolve, reject) => {
+      response.data.pipe(writer);
+      let error: any = null;
+      writer.on("error", (err) => {
+        error = err;
+        writer.close();
+        reject(err);
+      });
+      writer.on("close", () => {
+        writer.close();
+        writer.end();
+        if (!error) {
+          setTimeout(() => {
+            resolve(true);
+          }, 100);
+        }
+        //no need to call the reject here, as it will have been called in the
+        //'error' stream;
+      });
+    });
+  });
+}
+const ensureVigem = async () => {
+  if (existsSync(vigemPath)) return;
+  console.log("Downloading vigem.exe");
+  const file = createWriteStream(vigemPath);
+  const URL =
+    "https://github.com/henrikvik/vigem-interface/releases/download/1.0/vigem-interface.exe";
+  return new Promise<void>((resolve, reject) => {
+    downloadFile(URL, vigemPath).then(() => {
+      console.log("Downloaded vigem.exe");
+      anyKey2Exit();
+    });
   });
 };
 
@@ -161,9 +226,5 @@ if (!existsSync(configPath)) {
     )
   );
   console.error("Please configure the config.json file");
-  console.log("Press any key to exit");
-
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  process.stdin.on("data", process.exit.bind(process, 0));
-} else main();
+  anyKey2Exit();
+} else ensureVigem().then(main).catch(console.error);
