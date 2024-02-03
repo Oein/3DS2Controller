@@ -158,7 +158,7 @@ const main = () => {
   console.log("CONNECTING TO 3DS");
   client.connect(config["3DS_PORT"], config["3DS_IP"], () => {
     console.log("CONNECTED TO 3DS");
-    anyKey2Exit();
+    // anyKey2Exit();
   });
 };
 
