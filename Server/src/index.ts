@@ -45,6 +45,7 @@ const main = async () => {
 
   const config = JSON.parse(readFileSync(configPath).toString());
   if (!(config.DSU_MODE === true)) await ensureVigem();
+  let lastState: { [key: string]: any } = {};
 
   const parseData = (data: Buffer) => {
     // console.log(data);
@@ -143,7 +144,12 @@ const main = async () => {
       const maxv = 1;
       const minv = -1;
 
-      const dt = (v: boolean, data: any) => data + (v ? "+" : "-");
+      const dt = (v: boolean, data: any) => {
+        const nowDt = data + (v ? "+" : "-");
+        if (lastState[data] === nowDt) return "";
+        lastState[data] = nowDt;
+        return nowDt;
+      };
 
       const getNotiation = (
         up: boolean,
@@ -183,6 +189,12 @@ const main = async () => {
           "R"
         );
 
+      const memoify = (data: string, key: string) => {
+        if (lastState[key] === data) return "";
+        lastState[key] = data;
+        return data;
+      };
+
       const command = `${[
         dt(Parsed.A, "A"),
         dt(Parsed.B, "B"),
@@ -194,15 +206,15 @@ const main = async () => {
         dt(Parsed.ZR, "R"),
         dt(Parsed.SELECT, "BACK"),
         dt(Parsed.START, "START"),
-        getDPad(),
-        getLStick(),
-        getRStick(),
       ]
         .filter((x) => x != "")
         .join(" ")}`;
 
       console.log("> " + command);
       child.stdin?.write(command + "\n");
+      child.stdin?.write(
+        [getDPad(), getLStick(), getRStick()].join(" ") + "\n"
+      );
     }
   };
 
