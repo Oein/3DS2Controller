@@ -1,0 +1,21 @@
+{
+  "name": "3ds2controller",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.15",
+    "pkg": "^5.8.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {},
+  "pkg": {
+    "scripts": "dist/**/*.js",
+    "assets": "assets/**/*",
+    "targets": [
+      "node16-win-x64"
+    ],
+    "outputPath": "dist_bin"
+  },
+  "bin": "dist/index.js"
+}
