@@ -3,7 +3,7 @@ Server/node_modules
 Server/dist
 Server/dist_bin
 3DS/build
-3DS/*.elf
-3DS/*.smdh
-3DS/*.cia
-3DS/*.3dsx
+**/*.elf
+**/*.smdh
+**/*.cia
+**/*.3dsx
